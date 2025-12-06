@@ -8,13 +8,14 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
+import java.util.*;
 public class Server {
     
-    private List<String> clients;
+    private Set<String> clients;
     private HashMap<String, Socket> clientSockets;
     
     public Server() {
-        clients = new ArrayList<>();
+        clients = new HashSet<>();
         clientSockets = new HashMap<>();    
     }
     
