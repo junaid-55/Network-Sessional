@@ -3,13 +3,19 @@ package Server;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.FileOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.*;
+import util.*;
+
 public class Server {
+    public static final int BUFFER_SIZE = 102400;
+    public static final int MIN_CHUNK_SIZE = 512;
+    public static final int MAX_CHUNK_SIZE = 1024;
     
     private Set<String> clients;
     private HashMap<String, Socket> clientSockets;
