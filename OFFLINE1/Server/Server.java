@@ -13,9 +13,9 @@ import java.util.*;
 import util.*;
 
 public class Server {
-    public static final int BUFFER_SIZE = 102400;
-    public static final int MIN_CHUNK_SIZE = 512;
-    public static final int MAX_CHUNK_SIZE = 1024;
+    public static final int BUFFER_SIZE = 1024;
+    public static final int MIN_CHUNK_SIZE = 5;
+    public static final int MAX_CHUNK_SIZE = 10;
     
     private Set<String> clients;
     private HashMap<String, Socket> clientSockets;

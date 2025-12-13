@@ -44,6 +44,7 @@ public class Client {
             String choice = scanner.nextLine();
             
             if(choice.equals("1")) {
+                // in.flush();
                 Request req = new Request("GET","GET_LIVE_USERS");
                 out.writeObject((Object)req);
                 out.flush();
@@ -61,9 +62,16 @@ public class Client {
                 out.writeObject((Object)req);
                 out.flush();
                 res = (Response)in.readObject();
+                if(res.getStatus().equals("ERROR")) {
+                    System.out.println((String)res.getData());
+                    continue;
+                }
+                System.out.println("Server Response: " + (String)res.getStatus());
                 Pair<Integer, Long> pair = (Pair<Integer, Long>)res.getData();
+                
                 int chunk_size = pair.first();
                 System.out.println("Server approved upload. Chunk size: " + chunk_size + " bytes");
+                boolean uploadFailed = false;
                 for(int i = 0 ;i < new File(filePath).length(); i += chunk_size) {
                     int bytesToSend = (int)Math.min(chunk_size, new java.io.File(filePath).length() - i);
                     byte[] buffer = new byte[bytesToSend];
@@ -76,6 +84,23 @@ public class Client {
                     out.writeObject(new Request("POST","FILE_CHUNK", (Object)buffer, pair.second()));
                     out.flush();
                     System.out.println("Sent chunk of size: " + bytesToSend + " bytes");
+                    res = (Response)in.readObject();
+                    System.out.println((String)res.getData());
+                    if(res.getStatus().equals("ERROR")) {
+                        uploadFailed = true;
+                        System.out.println("Upload failed.");
+                        break;
+                    }else {
+                        System.out.println(i/ chunk_size + "'th Chunk uploaded successfully.");
+                    }
+                }
+                if(!uploadFailed) {
+                    System.out.println("File upload completed successfully.");
+                    Request completeReq = new Request("POST","END_OF_FILE", null, pair.second());
+                    out.writeObject((Object)completeReq);
+                    out.flush();
+                    res = (Response)in.readObject();
+                    System.out.println((String)res.getData());
                 }
             } else if(choice.equals("3")) {
                 Request req = new Request("POST","LogOut");
