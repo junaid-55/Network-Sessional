@@ -22,7 +22,6 @@ public class Worker implements Runnable {
     private Integer bufferCounter;
     private HashMap<Long, FileDescriptor> currentTransmission = new HashMap<>();
     private Long fileIDCounter = 0L;
-    // pair<fileID, pair<startIndex, length>>
     private List<Pair<Long, Pair<Integer, Integer>>> chunksInfo;
 
     public Worker(Socket socket, Server server) {
@@ -43,6 +42,9 @@ public class Worker implements Runnable {
         FileDescriptor fileDesc = (FileDescriptor) req.getData();
         if (fileDesc.getFileSize() + bufferCounter > Server.BUFFER_SIZE) {
             return new Response("ERROR", "Server buffer full. Try again later.");
+        }
+        if(fileDesc.isRequested() && server.checkValidityOfRequest(fileDesc.getRequestId(), clientName)==false ){
+            return new Response("ERROR", "Invalid file request ID.");
         }
         int chunk_size = new Random().nextInt((Server.MAX_CHUNK_SIZE - Server.MIN_CHUNK_SIZE) + 1)
                 + Server.MIN_CHUNK_SIZE;
@@ -95,7 +97,7 @@ public class Worker implements Runnable {
             finalFilePath += "private/";
         }
         try {
-            FileOutputStream fos = new FileOutputStream(finalFilePath + fileName, true);
+            FileOutputStream fos = new FileOutputStream(finalFilePath + fileName, false);
             for (Pair<Long, Pair<Integer, Integer>> chunkInfo : chunksInfo) {
                 Integer startIndex = chunkInfo.second().first();
                 Integer length = chunkInfo.second().second();
@@ -104,12 +106,16 @@ public class Worker implements Runnable {
             fos.close();
             System.out.println("Written buffered data to file: " + fileName);
             FileOutputStream fosLog = new FileOutputStream("Files/" + clientName + "/log.txt", true);
-            String logEntry = "FileName: " + fileName + "," + "DateTime: " + new Date().toString() + "," + "Action: UPLOAD" + "," + "Status: SUCCESSFUL" + "\n";
+            String logEntry = "FileName: " + fileName + ", DateTime: " + new Date().toString() + ", Action: UPLOAD" + ", Status: SUCCESSFUL" + "\n";
             fosLog.write(logEntry.getBytes());
             bufferCounter = 0;
             chunksInfo.clear();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        FileDescriptor fd = currentTransmission.get(fileId);
+        if (fd.isRequested()) {
+            server.forwardRequestCompletion(fd.getRequestId(), clientName, fileName);
         }
         currentTransmission.remove(fileId);
 
@@ -147,7 +153,7 @@ public class Worker implements Runnable {
         } catch (IOException e) {
             try {
                 FileOutputStream fosLog = new FileOutputStream("Files/" + clientName + "/log.txt", true);
-                String logEntry = "FileName: " + fileName + ","+ "DateTime: " + new Date().toString() + "," + "Action: DOWNLOAD" + "," + "Status: FAILED" + "\n";
+                String logEntry = "FileName: " + fileName + ", DateTime: " + new Date().toString() + ", Action: DOWNLOAD" + ", Status: FAILED" + "\n";
                 fosLog.write(logEntry.getBytes());
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -157,7 +163,7 @@ public class Worker implements Runnable {
         }
         try {
             FileOutputStream fosLog = new FileOutputStream("Files/" + clientName + "/log.txt", true);
-            String logEntry = "FileName: " + fileName + ","+ "DateTime: " + new Date().toString() + "," + "Action: DOWNLOAD" + "," + "Status: SUCCESSFUL" + "\n";
+            String logEntry = "FileName: " + fileName + ", DateTime: " + new Date().toString() + ", Action: DOWNLOAD" + ", Status: SUCCESSFUL" + "\n";
             fosLog.write(logEntry.getBytes());
         } catch (IOException e) {
             e.printStackTrace();
@@ -281,15 +287,34 @@ public class Worker implements Runnable {
                     res = new Response("SUCCESS", getOthersFiles(clientName));
                     out.writeObject((Object) res);
                 } else if (req.getType().equals("REQUEST_FILE")){
-                    // To be implemented
                     var data = (Pair<String, String>) req.getData();
                     boolean status = server.handleFileRequest(data.first(), clientName, data.second());
+                    String msg = status ? "File request sent successfully." : "File request failed.";
+                    res = new Response(status ? "SUCCESS" : "ERROR", msg);
                     out.writeObject((Object) res);
                 } else if (req.getType().equals("VIEW_UPLOAD_HISTORY")) {
                     res = new Response("SUCCESS", getUploadHistory());
                     out.writeObject((Object) res);
                 } else if (req.getType().equals("VIEW_DOWNLOAD_HISTORY")) {
                     res = new Response("SUCCESS", getDownloadHistory());
+                    out.writeObject((Object) res);
+                } else if(req.getType().equals("VIEW_MESSAGES")){
+                    String path = "Files/" + clientName + "/messages.txt";
+                    List<String> messages = new ArrayList<>();
+                    try (Scanner scanner = new Scanner(new File(path))) {
+                        while (scanner.hasNextLine()) {
+                            String line = scanner.nextLine();
+                            messages.add(line);
+                        }
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        new FileOutputStream(path).close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    res = new Response("SUCCESS", messages);
                     out.writeObject((Object) res);
                 }
                 else {
@@ -309,7 +334,7 @@ public class Worker implements Runnable {
                 }
                 for (Long fileId : currentTransmission.keySet()) {
 
-                    String logEntry = "FileName: " + currentTransmission.get(fileId).getFileName() + ","+ "DateTime: " + new Date().toString() + "," + "Action: UPLOAD" + "," + "Status: FAILED" + "\n";
+                    String logEntry = "FileName: " + currentTransmission.get(fileId).getFileName() + ", DateTime: " + new Date().toString() + ", Action: UPLOAD" + ", Status: FAILED" + "\n";
                     try {
                         if (fosLog != null) {
                             fosLog.write(logEntry.getBytes());

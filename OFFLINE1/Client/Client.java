@@ -20,7 +20,6 @@ public class Client {
         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
         ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
-        // Send client name
         Scanner scanner = new Scanner(System.in);
         System.out.print("Enter your name: ");
         String name = scanner.nextLine();
@@ -36,7 +35,7 @@ public class Client {
             scanner.close();
             return;
         }
-        // Interactive menu
+        // menu
         new File("Downloads").mkdirs();
         while (true) {
             System.out.println("\n1. Get live users");
@@ -46,7 +45,8 @@ public class Client {
             System.out.println("5. View Files");
             System.out.println("6. View Upload History");
             System.out.println("7. View Download History");
-            System.out.println("8. Disconnect");
+            System.out.println("8. View Unread Messages");
+            System.out.println("9. Disconnect");
             System.out.print("Choose option: ");
 
             String choice = scanner.nextLine();
@@ -57,9 +57,12 @@ public class Client {
                 out.flush();
                 res = (Response) in.readObject();
                 var users = (List<String>) res.getData();
-                System.out.println("Live users: " + users);
+                System.out.println("Live users: ");
+                for (String user : users) {
+                    System.out.println("\t" + user);
+                }
             } else if (choice.equals("2")) {
-                System.out.println("Select upload type:\n1. Public\n2. Private\n3.Requested file\nChoose option: ");
+                System.out.println("Select upload type:\n1. Public\n2. Private\n3. Requested file\nChoose option: ");
                 int option = Integer.parseInt(scanner.nextLine());
                 Long requestId = 0L;
                 if (option == 3) {
@@ -148,7 +151,7 @@ public class Client {
                     continue;
                 } else {
                     System.out.println("Starting download of file: " + fileName);
-                    FileOutputStream fos = new FileOutputStream("Downloads/" + fileName);
+                    FileOutputStream fos = new FileOutputStream("Downloads/" + fileName, false);
                     while (true) {
                         res = (Response) in.readObject();
                         if (res.getStatus().equals("ERROR")) {
@@ -167,7 +170,6 @@ public class Client {
                     }
                 }
             } else if (choice.equals("4")) {
-                // System.out.println("Request file feature not implemented yet.");
                 System.out.print("Enter the description of the file you want to request: ");
                 String fileDescription = scanner.nextLine();
                 System.out.print("Choose recipient of the request:\n1.ALL \n2.CUSTOM\nEnter choice: ");
@@ -241,6 +243,10 @@ public class Client {
                 out.writeObject((Object) req);
                 out.flush();
                 res = (Response) in.readObject();
+                if(res.getStatus().equals("ERROR")) {
+                    System.out.println((String) res.getData());
+                    continue;
+                }
                 List<String> downloadHistory = (List<String>) res.getData();
                 System.out.println("Download History:");
                 if( downloadHistory.isEmpty()) {
@@ -250,12 +256,32 @@ public class Client {
                 for (String logEntry : downloadHistory) {
                     System.out.println("\t" + logEntry);
                 }
+            }else if(choice.equals("8")){
+                Request req = new Request("GET", "VIEW_MESSAGES");
+                out.writeObject((Object) req);
+                out.flush();
+                res = (Response) in.readObject();
+                if(res.getStatus().equals("ERROR")) {
+                    System.out.println((String) res.getData());
+                    continue;
+                }
+                List<String> messages = (List<String>) res.getData();
+                System.out.println("Unread Messages:"); 
+                if( messages.isEmpty()) {
+                    System.out.println("\tNo unread messages.");
+                    continue;
+                }
+                for (String msg : messages) {
+                    System.out.println("\t" + msg);
+                }
             }
-            else if (choice.equals("8")) {
+            else if (choice.equals("9")) {
                 Request req = new Request("POST", "LogOut");
                 out.writeObject((Object) req);
                 out.flush();
                 break;
+            }else {
+                System.out.println("Invalid option. Please try again.");
             }
         }
 

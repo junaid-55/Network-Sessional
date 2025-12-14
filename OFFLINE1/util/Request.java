@@ -1,7 +1,6 @@
 package util;
 import java.io.Serializable;
 public class Request implements Serializable{
-    // private static final long seialVersionUID = 1L;
     private String method;
     private String type;
     private Object data;
