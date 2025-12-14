@@ -26,9 +26,4 @@ public class Pair<K, V> implements Serializable {
     public void setSecond(V second) {
         this.second = second;
     }
-    
-    @Override
-    public String toString() {
-        return "(" + first + ", " + second + ")";
-    }
 }
