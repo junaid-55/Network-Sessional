@@ -1,20 +1,17 @@
 package Server;
 
-import java.io.IOException;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
 import java.util.*;
 import util.*;
 public class Server {
 
-    public static final int BUFFER_SIZE = 1024;
-    public static final int MIN_CHUNK_SIZE = 5;
-    public static final int MAX_CHUNK_SIZE = 10;
+    public static final int BUFFER_SIZE = 102400;
+    public static final int MIN_CHUNK_SIZE = 512;
+    public static final int MAX_CHUNK_SIZE = 1024;
 
     private Set<String> clients;
     private HashMap<String, Socket> clientSockets;
@@ -76,7 +73,7 @@ public class Server {
                 }
                 String path = "Files/" + f.getName()+"/messages.txt";
                 try {
-                    String msg = "RequestID: " + requestId + ", From: " + requestingClient + ", File: " + fileDescription+"\n";
+                    String msg = "RequestID: " + requestId + ", From: " + requestingClient + ", FileDescription: " + fileDescription+"\n";
                     FileOutputStream fos = new FileOutputStream(path, true);
                     fos.write(msg.getBytes());
                     fos.close();

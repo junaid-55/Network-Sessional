@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 import util.*;
 
+
 public class Worker implements Runnable {
 
     private Socket socket;
@@ -142,14 +143,21 @@ public class Worker implements Runnable {
         if (!file.exists()) {
             return new Response("ERROR", "File not found on server.");
         }
+        try{
+        out.writeObject(new Response("SUCCESS", "START_FILE_TRANSFER"));
+        out.flush();
+        } catch (IOException e){
+            e.printStackTrace();
+            return new Response("ERROR", "Failed to initiate file transfer.");
+        }
+        for(int i = 0; i < file.length(); i += Server.MAX_CHUNK_SIZE){
+        int bytesToSend = (int) Math.min(Server.MAX_CHUNK_SIZE, file.length() - i);
+        byte[] fileChunk = new byte[bytesToSend];
         try (FileInputStream fis = new FileInputStream(filePath)) {
-            byte[] fileChunk = new byte[Server.MAX_CHUNK_SIZE];
-            int bytesRead;
-            while ((bytesRead = fis.read(fileChunk)) != -1) {
-                byte [] actualChunk = Arrays.copyOf(fileChunk, bytesRead);
-                out.writeObject(new Response("SUCCESS", "FILE_CHUNK", (Object) actualChunk));
-                out.flush();
-            }
+            fis.skip(i);
+            fis.read(fileChunk, 0, bytesToSend);
+            out.writeObject(new Response("SUCCESS", "FILE_CHUNK", (Object) fileChunk));
+            out.flush();
         } catch (IOException e) {
             try {
                 FileOutputStream fosLog = new FileOutputStream("Files/" + clientName + "/log.txt", true);
@@ -161,6 +169,7 @@ public class Worker implements Runnable {
             e.printStackTrace();
             return new Response("ERROR", "Failed to send file.");
         }
+    }
         try {
             FileOutputStream fosLog = new FileOutputStream("Files/" + clientName + "/log.txt", true);
             String logEntry = "FileName: " + fileName + ", DateTime: " + new Date().toString() + ", Action: DOWNLOAD" + ", Status: SUCCESSFUL" + "\n";

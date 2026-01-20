@@ -148,10 +148,11 @@ public class Client {
                 res = (Response) in.readObject();
                 if (res.getStatus().equals("ERROR")) {
                     System.out.println((String) res.getData());
-                    continue;
                 } else {
                     System.out.println("Starting download of file: " + fileName);
                     FileOutputStream fos = new FileOutputStream("Downloads/" + fileName, false);
+                    fos.close();
+                    fos = new FileOutputStream("Downloads/" + fileName, true);
                     while (true) {
                         res = (Response) in.readObject();
                         if (res.getStatus().equals("ERROR")) {
