@@ -1,0 +1,48 @@
+CSE 322 
+Section C
+
+In this session, we will explore routing options in NS-3. To do so, we will work with two files:
+#!/bin/bash
+
+
+1. examples/routing/simple-global-routing.cc 
+
+2. examples/routing/rip-simple-network.cc 
+
+Task 1
+-------
+You will copy each file to the scratch directory. Run them step by step. In the end, you will have to submit a report of what you learned.
+
+Check the generated tr and pcap files. Include them in your report.
+
+For file 1, enable EnableMonitor option and analyze the generated simple-global-routing.flowmon file. 
+
+Task 2
+------
+
+// Network topology
+//
+//           SRC
+//           |<=== source network
+//     A-----B
+//     |    /|   Costs: BD --> 6, BC --> 5, EC -->2
+//     |   / |          all others --> 1
+//     E--C  /    
+//        | /
+//        |/
+//        D
+//        |<=== target network
+//       DST
+//
+
+Change the topology of rip-simple-network.cc to above and repeat Task 1. 
+
+Deadline: 4 PM. 
+Marking: 
+Completion -> 100
+Sincere Attempt -> 100 
+Otherwise -> 0 
+
+
+
+

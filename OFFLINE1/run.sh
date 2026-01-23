@@ -1,4 +1,4 @@
 #!/bin/bash
 
-javac -d . Server/*.java
-javac -d . Client/*.java
+javac  Server/*.java
+javac  Client/*.java
