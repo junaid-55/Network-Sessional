@@ -1,3 +1,6 @@
 *.class
 *.zip
 ./NS3-TESTS
+build
+.vscode
+.cache

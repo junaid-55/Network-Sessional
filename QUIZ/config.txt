@@ -1,0 +1,195 @@
+##ROUTER 
+
+--Setting up dynamic routing
+
+Router> enable
+Router# configure terminal
+Router(config)# router rip
+Router(config-router)# version 2
+Router(config-router)# no auto-summary
+Router(config-router)# network 192.168.1.0
+Router(config-router)# exit
+Router(config)# exit
+
+--standard ACL
+
+Router> enable
+Router# configure terminal
+Router(config)# access-list 10 permit 192.168.1.10 0.0.0.0
+Router(config)# access-list 10 deny 192.168.1.0 0.0.0.255
+Router(config)# access-list 10 permit any
+Router(config)# interface g0/0
+Router(config-if)# ip access-group 10 in
+Router(config-if)# exit
+Router(config)# exit
+Router# show access-lists
+Router# show ip interface
+Router# ping 192.168.2.10
+Router# copy running-config startup-config
+
+--deleting access-lists from interface
+
+Router> enable
+Router# configure terminal
+Router(config)# interface g0/0
+Router(config-if)# no ip access-group 10 in
+Router(config-if)# exit
+Router(config)# exit
+
+--deleting access-lists from global memory
+
+Router> enable
+Router# configure terminal
+Router(config)# no access-list 10
+Router(config)# exit
+
+--extended ACL
+
+Router> enable
+Router# configure terminal
+Router(config)# access-list 100 deny tcp 192.168.1.10 0.0.0.0 192.168.2.10 0.0.0.0 eq 80
+Router(config)# access-list 100 permit ip any any
+Router(config)# interface g0/0
+Router(config-if)# ip access-group 100 in
+Router(config-if)# exit
+Router(config)# exit
+Router# show access-lists
+Router# show ip interface
+Router# ping 192.168.2.10
+Router# copy running-config startup-config
+
+
+--vlan setup
+
+Scenario (Realistic)
+
+1 Switch (S1)
+
+2 VLANs
+
+VLAN 10 → Sales (PCs: 192.168.10.0/24)
+
+VLAN 20 → HR (PCs: 192.168.20.0/24)
+
+PCs connected to access ports
+
+One uplink (trunk) to a router or another switch
+
+🔹 PART 1: Create VLANs on the Switch
+Switch> enable
+Switch# configure terminal
+Switch(config)# vlan 10
+Switch(config-vlan)# name SALES
+Switch(config-vlan)# exit
+Switch(config)# vlan 20
+Switch(config-vlan)# name HR
+Switch(config-vlan)# exit
+
+🔹 PART 2: Assign Access Ports to VLANs
+VLAN 10 (Sales PCs on Fa0/1–Fa0/3)
+Switch(config)# interface range fa0/1 - 3
+Switch(config-if-range)# switchport mode access
+Switch(config-if-range)# switchport access vlan 10
+Switch(config-if-range)# exit
+
+VLAN 20 (HR PCs on Fa0/4–Fa0/6)
+Switch(config)# interface range fa0/4 - 6
+Switch(config-if-range)# switchport mode access
+Switch(config-if-range)# switchport access vlan 20
+Switch(config-if-range)# exit
+
+🔹 PART 3: Configure Trunk Port (Router / Switch Uplink)
+
+Assume uplink is Fa0/24:
+
+Switch(config)# interface fa0/24
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20
+Switch(config-if)# exit
+
+
+Trunk carries multiple VLANs between devices.
+
+🔹 PART 4: Verify VLAN Configuration
+Switch# show vlan brief
+Switch# show interfaces trunk
+
+🔹 OUTPUT EXPECTATION
+
+VLAN 10 → Fa0/1, Fa0/2, Fa0/3
+
+VLAN 20 → Fa0/4, Fa0/5, Fa0/6
+
+Fa0/24 → trunk
+
+🔹 PART 5: (Optional) Inter-VLAN Routing (Router-on-a-Stick)
+
+If you want VLAN 10 ↔ VLAN 20 communication:
+
+On the Router
+Router> enable
+Router# configure terminal
+Router(config)# interface g0/0.10
+Router(config-subif)# encapsulation dot1Q 10
+Router(config-subif)# ip address 192.168.10.1 255.255.255.0
+Router(config-subif)# exit
+
+Router(config)# interface g0/0.20
+Router(config-subif)# encapsulation dot1Q 20
+Router(config-subif)# ip address 192.168.20.1 255.255.255.0
+Router(config-subif)# exit
+
+
+--PAT 
+Router> enable
+Router# configure terminal
+
+! Inside interface (LAN)
+Router(config)# interface g0/0
+Router(config-if)# ip address 192.168.1.1 255.255.255.0
+Router(config-if)# ip nat inside
+Router(config-if)# exit
+
+! Outside interface (ISP)
+Router(config)# interface g0/1
+Router(config-if)# ip address 200.1.1.1 255.255.255.0
+Router(config-if)# ip nat outside
+Router(config-if)# exit
+
+! ACL to define inside local addresses
+Router(config)# access-list 1 permit 192.168.1.0 0.0.0.255
+
+! NAT overload configuration
+Router(config)# ip nat inside source list 1 interface g0/1 overload
+
+Router(config)# exit
+
+! Verification
+Router# show ip nat translations
+Router# show ip nat statistics
+Router# ping 8.8.8.8
+
+! Save configuration
+Router# copy running-config startup-config
+
+
+
+-- Static NAT
+
+Router> enable
+Router# configure terminal
+Router(config)# ip nat inside source static 192.168.1.10 200.1.1.10
+Router(config)# exit
+
+inside out
+
+
+
+--dynamic NAT 
+
+Router> enable
+Router# configure terminal
+Router(config)# ip nat pool PUBLIC_POOL 200.1.1.2 200.1.1.5 netmask 255.255.255.0
+Router(config)# access-list 1 permit 192.168.1.0 0.0.0.255
+Router(config)# ip nat inside source list 1 pool PUBLIC_POOL
+Router(config)# exit
